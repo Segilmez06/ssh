@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sarp's SSH PubKeys</title>
+    <style>
+        :root {
+            --bg: #f3f3f3;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --text: #1a1a1a;
+            --accent: #0078d4;
+            --border: rgba(0, 0, 0, 0.1);
+            --code-bg: #fdfdfd;
+            --footer-text: #5d5d5d;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #202020;
+                --card-bg: rgba(45, 45, 45, 0.7);
+                --text: #ffffff;
+                --accent: #60cdff;
+                --border: rgba(255, 255, 255, 0.1);
+                --code-bg: #1c1c1c;
+                --footer-text: #a0a0a0;
+            }
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI Variable Text", "Segoe UI", "Inter", -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(25px) saturate(190%);
+            -webkit-backdrop-filter: blur(25px) saturate(190%);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 520px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            opacity: 0.85;
+            margin-bottom: 2rem;
+        }
+
+        .copy-box {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        code {
+            font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.9rem;
+            flex-grow: 1;
+            text-align: left;
+            color: var(--accent);
+            white-space: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none; /* Firefox */
+        }
+
+        code::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        .copy-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.2);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.96);
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer a {
+            color: var(--footer-text);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .footer a:hover {
+            color: var(--accent);
+        }
+
+        .footer a svg {
+            width: 14px;
+            height: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Install SSH Public Keys</h1>
+        <p>Run the command below to append keys to your local list.</p>
+
+        <div class="copy-box">
+            <code id="cmd">curl -sL ssh.sarpegilmez.net/setup | bash</code>
+            <button class="copy-btn" id="copyBtn" onclick="copyCommand()">Copy</button>
+        </div>
+
+        <div class="footer">
+            <a href="https://ssh.sarpegilmez.net/setup" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                Preview Script
+            </a>
+            <a href="https://github.com/Segilmez06/ssh" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                GitHub Repo
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function copyCommand() {
+            const text = document.getElementById('cmd').innerText;
+            const btn = document.getElementById('copyBtn');
+            
+            // Fallback for environments where navigator.clipboard might be restricted
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                btn.innerText = 'Copied!';
+                btn.style.background = '#28a745';
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+            
+            document.body.removeChild(textArea);
+
+            setTimeout(() => {
+                btn.innerText = 'Copy';
+                btn.style.background = '';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
