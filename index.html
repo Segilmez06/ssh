@@ -10,6 +10,7 @@
             --card-bg: rgba(255, 255, 255, 0.7);
             --text: #1a1a1a;
             --accent: #0078d4;
+            --copy-btn-bg: #005a9e;
             --border: rgba(0, 0, 0, 0.1);
             --code-bg: #fdfdfd;
             --footer-text: #5d5d5d;
@@ -21,10 +22,15 @@
                 --card-bg: rgba(45, 45, 45, 0.7);
                 --text: #ffffff;
                 --accent: #60cdff;
+                --copy-btn-bg: #0067b8;
                 --border: rgba(255, 255, 255, 0.1);
                 --code-bg: #1c1c1c;
                 --footer-text: #a0a0a0;
             }
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
 
         body {
@@ -35,8 +41,47 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100svh;
+            padding: clamp(1rem, 3.2vw, 2rem) 1rem;
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
+            isolation: isolate;
+        }
+
+        .bubbles {
+            position: fixed;
+            inset: 0;
+            width: 100%;
             height: 100vh;
             overflow: hidden;
+            pointer-events: none;
+            display: block;
+            z-index: 0;
+        }
+
+        .bubble {
+            position: absolute;
+            left: var(--bubble-left-offset);
+            bottom: -75vh;
+            width: var(--bubble-radius);
+            height: var(--bubble-radius);
+            border-radius: 50%;
+            animation: float-up var(--bubble-float-duration) var(--bubble-float-delay) ease-in infinite;
+            transform: translate3d(0, 0, 0);
+            will-change: transform;
+        }
+
+        .bubble::before {
+            position: absolute;
+            content: "";
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: hsla(183, 94%, 76%, 0.3);
+            border-radius: inherit;
+            animation: var(--bubble-sway-type) var(--bubble-sway-duration) var(--bubble-sway-delay) ease-in-out alternate infinite;
         }
 
         .container {
@@ -47,8 +92,7 @@
             border-radius: 12px;
             padding: 2.5rem;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            width: 90%;
-            max-width: 520px;
+            width: min(560px, 100%);
             text-align: center;
             transition: transform 0.3s ease;
         }
@@ -73,6 +117,9 @@
             border-radius: 8px;
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
+            column-gap: 12px;
+            row-gap: 8px;
             padding: 10px 14px;
             margin-bottom: 2rem;
             position: relative;
@@ -81,7 +128,8 @@
         code {
             font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", monospace;
             font-size: 0.9rem;
-            flex-grow: 1;
+            flex: 1 1 13rem;
+            min-width: 0;
             text-align: left;
             color: var(--accent);
             white-space: nowrap;
@@ -94,17 +142,26 @@
         }
 
         .copy-btn {
-            background: var(--accent);
+            background: var(--copy-btn-bg);
             color: #fff;
             border: none;
             border-radius: 6px;
-            padding: 8px 16px;
+            padding: 8px 12px;
             font-size: 0.85rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-left: 12px;
+            margin-left: auto;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .copy-box.is-wrapped .copy-btn {
+            width: 100%;
+            margin-left: 0;
         }
 
         .copy-btn:hover {
@@ -119,10 +176,28 @@
         .footer {
             display: flex;
             justify-content: center;
-            gap: 1.5rem;
+            gap: 2rem;
             margin-top: 1rem;
             padding-top: 1.5rem;
             border-top: 1px solid var(--border);
+        }
+
+        .footer > * + * {
+            position: relative;
+        }
+
+        .footer > * + *::before {
+            content: "";
+            position: absolute;
+            left: -1rem;
+            top: 50%;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--footer-text);
+            opacity: 0.8;
+            transform: translateY(-50%);
+            pointer-events: none;
         }
 
         .footer a {
@@ -194,13 +269,180 @@
             mask-image: url('resources/rocket_launch_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg');
         }
 
+        .icon-copy {
+            -webkit-mask-image: url('resources/content_copy_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg');
+            mask-image: url('resources/content_copy_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg');
+        }
+
         .footer-copy-btn svg {
             width: 14px;
             height: 14px;
         }
+
+        @keyframes float-up {
+            to {
+                transform: translateY(-175vh);
+            }
+        }
+
+        @keyframes sway-left-to-right {
+            from {
+                transform: translateX(-100%);
+            }
+
+            to {
+                transform: translateX(100%);
+            }
+        }
+
+        @keyframes sway-right-to-left {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(-100%);
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (max-width: 560px) {
+            body {
+                padding: 0;
+                align-items: center;
+            }
+
+            .container {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                width: 100%;
+                max-width: none;
+                min-height: 100svh;
+                border-radius: 0;
+                border: none;
+                box-shadow: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                background: var(--bg);
+                padding: 1.5rem 1rem;
+            }
+
+            .footer {
+                flex-wrap: wrap;
+                gap: 1.5rem;
+            }
+
+            .footer > * + *::before {
+                content: none;
+            }
+
+            h1 {
+                font-size: 1.45rem;
+            }
+
+            p {
+                margin-bottom: 1.35rem;
+            }
+
+            .footer {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            body {
+                align-items: flex-start;
+            }
+
+            .container {
+                padding: 1.2rem 0.9rem;
+            }
+
+            h1 {
+                font-size: 1.35rem;
+            }
+
+            p {
+                margin-bottom: 1rem;
+            }
+
+            .copy-box {
+                margin-bottom: 1rem;
+            }
+
+            code {
+                font-size: 0.82rem;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 0.85rem;
+                margin-top: 0.75rem;
+                padding-top: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
+
+    <div class="bubbles" aria-hidden="true">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
 
     <div class="container">
         <h1>Install SSH Public Keys</h1>
@@ -208,7 +450,10 @@
 
         <div class="copy-box">
             <code id="cmd">curl -sL ssh.sarpegilmez.net/setup | bash</code>
-            <button class="copy-btn" id="copyBtn" onclick="copyCommand()">Copy</button>
+            <button class="copy-btn" id="copyBtn" type="button" onclick="copyCommand()">
+                <span class="icon-mask icon-copy" aria-hidden="true"></span>
+                <span id="copyBtnText">Copy</span>
+            </button>
         </div>
 
         <div class="footer">
@@ -228,9 +473,32 @@
     </div>
 
     <script>
+        function updateCopyButtonWrapState() {
+            const copyBox = document.querySelector('.copy-box');
+            const codeBlock = document.getElementById('cmd');
+            const copyBtn = document.getElementById('copyBtn');
+
+            if (!copyBox || !codeBlock || !copyBtn) {
+                return;
+            }
+
+            // Measure with natural inline button size first so wrapped mode can recover.
+            copyBox.classList.remove('is-wrapped');
+
+            const isNaturallyWrapped = copyBtn.offsetTop > codeBlock.offsetTop + 1;
+            const isCodeOverflowing = codeBlock.scrollWidth > codeBlock.clientWidth + 2;
+            const minInlineCodeWidth = 250;
+            const inlineGap = 12;
+            const availableInlineCodeWidth = copyBox.clientWidth - copyBtn.offsetWidth - inlineGap;
+            const shouldWrapEarly = availableInlineCodeWidth < minInlineCodeWidth;
+
+            copyBox.classList.toggle('is-wrapped', isNaturallyWrapped || isCodeOverflowing || shouldWrapEarly);
+        }
+
         function copyCommand() {
             const text = document.getElementById('cmd').innerText;
             const btn = document.getElementById('copyBtn');
+            const label = document.getElementById('copyBtnText');
             
             // Fallback for environments where navigator.clipboard might be restricted
             const textArea = document.createElement("textarea");
@@ -240,8 +508,9 @@
             
             try {
                 document.execCommand('copy');
-                btn.innerText = 'Copied!';
+                label.innerText = 'Copied!';
                 btn.style.background = '#28a745';
+                updateCopyButtonWrapState();
             } catch (err) {
                 console.error('Fallback: Oops, unable to copy', err);
             }
@@ -249,8 +518,9 @@
             document.body.removeChild(textArea);
 
             setTimeout(() => {
-                btn.innerText = 'Copy';
+                label.innerText = 'Copy';
                 btn.style.background = '';
+                updateCopyButtonWrapState();
             }, 2000);
         }
 
@@ -280,6 +550,46 @@
                 btn.style.color = '';
             }, 2000);
         }
+
+        function randomRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function initializeBubbles() {
+            const bubbles = document.querySelectorAll('.bubble');
+
+            if (!bubbles.length) {
+                return;
+            }
+
+            bubbles.forEach((bubble) => {
+                bubble.style.setProperty('--bubble-left-offset', `${randomRange(0, 100).toFixed(2)}vw`);
+                bubble.style.setProperty('--bubble-radius', `${randomRange(1, 10).toFixed(2)}vw`);
+                bubble.style.setProperty('--bubble-float-duration', `${randomRange(6, 12).toFixed(2)}s`);
+                bubble.style.setProperty('--bubble-sway-duration', `${randomRange(4, 6).toFixed(2)}s`);
+                bubble.style.setProperty('--bubble-float-delay', `${randomRange(0, 4).toFixed(2)}s`);
+                bubble.style.setProperty('--bubble-sway-delay', `${randomRange(0, 4).toFixed(2)}s`);
+                bubble.style.setProperty('--bubble-sway-type', Math.random() > 0.5 ? 'sway-left-to-right' : 'sway-right-to-left');
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            updateCopyButtonWrapState();
+            initializeBubbles();
+        });
+
+        window.addEventListener('orientationchange', () => {
+            updateCopyButtonWrapState();
+            initializeBubbles();
+        });
+
+        window.addEventListener('load', () => {
+            updateCopyButtonWrapState();
+            initializeBubbles();
+        });
+
+        updateCopyButtonWrapState();
+        initializeBubbles();
     </script>
 </body>
 </html>
