@@ -79,7 +79,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: hsla(183, 94%, 76%, 0.3);
+            background: hsla(208, 94%, 76%, 0.3);
             border-radius: inherit;
             animation: var(--bubble-sway-type) var(--bubble-sway-duration) var(--bubble-sway-delay) ease-in-out alternate infinite;
         }
@@ -102,6 +102,8 @@
             font-weight: 600;
             margin: 0 0 0.5rem 0;
             letter-spacing: -0.02em;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         p {
@@ -109,6 +111,8 @@
             line-height: 1.5;
             opacity: 0.85;
             margin-bottom: 2rem;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .copy-box {
@@ -130,15 +134,27 @@
             font-size: 0.9rem;
             flex: 1 1 13rem;
             min-width: 0;
+            display: block;
             text-align: left;
             color: var(--accent);
             white-space: nowrap;
             overflow-x: auto;
-            scrollbar-width: none; /* Firefox */
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
         }
 
         code::-webkit-scrollbar {
-            display: none; /* Chrome/Safari */
+            height: 8px;
+        }
+
+        code::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.22);
+            border-radius: 999px;
+        }
+
+        code::-webkit-scrollbar-track {
+            background: transparent;
         }
 
         .copy-btn {
@@ -157,6 +173,8 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .copy-box.is-wrapped .copy-btn {
@@ -209,6 +227,8 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .footer a:hover {
@@ -228,6 +248,8 @@
             cursor: pointer;
             padding: 0;
             font-family: inherit;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .footer-copy-btn:hover {
@@ -314,6 +336,10 @@
             body {
                 padding: 0;
                 align-items: center;
+            }
+
+            .bubbles {
+                display: none;
             }
 
             .container {
@@ -556,7 +582,20 @@
         }
 
         function initializeBubbles() {
-            const bubbles = document.querySelectorAll('.bubble');
+            const bubblesContainer = document.querySelector('.bubbles');
+
+            if (!bubblesContainer) {
+                return;
+            }
+
+            if (window.matchMedia('(max-width: 560px)').matches) {
+                bubblesContainer.style.display = 'none';
+                return;
+            }
+
+            bubblesContainer.style.display = '';
+
+            const bubbles = bubblesContainer.querySelectorAll('.bubble');
 
             if (!bubbles.length) {
                 return;
