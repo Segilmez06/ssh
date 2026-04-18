@@ -1,0 +1,327 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+KEYS_URL="https://ssh.sarpegilmez.net/keys"
+
+log() {
+	echo "[setup] $*"
+}
+
+fail() {
+	echo "[setup] ERROR: $*" >&2
+	exit 1
+}
+
+detect_package_manager() {
+	if command -v apt-get >/dev/null 2>&1; then
+		echo "apt"
+		return
+	fi
+
+	if command -v pacman >/dev/null 2>&1; then
+		echo "pacman"
+		return
+	fi
+
+	if command -v dnf >/dev/null 2>&1; then
+		echo "dnf"
+		return
+	fi
+
+	if command -v yum >/dev/null 2>&1; then
+		echo "yum"
+		return
+	fi
+
+	if command -v zypper >/dev/null 2>&1; then
+		echo "zypper"
+		return
+	fi
+
+	fail "No supported package manager found (apt/pacman/dnf/yum/zypper)."
+}
+
+install_openssh_server() {
+	case "${PKG_MANAGER}" in
+		apt)
+			"${SUDO[@]}" apt-get update
+			"${SUDO[@]}" apt-get install -y openssh-server curl ca-certificates grep
+			;;
+		pacman)
+			"${SUDO[@]}" pacman -Sy --noconfirm openssh curl ca-certificates grep
+			;;
+		dnf)
+			"${SUDO[@]}" dnf -y install openssh-server curl ca-certificates grep
+			;;
+		yum)
+			"${SUDO[@]}" yum -y install openssh-server curl ca-certificates grep
+			;;
+		zypper)
+			"${SUDO[@]}" zypper -n install openssh curl ca-certificates grep
+			;;
+		*)
+			fail "Unsupported package manager: ${PKG_MANAGER}"
+			;;
+	esac
+}
+
+start_openssh_service() {
+	local ssh_service
+
+	if ! command -v systemctl >/dev/null 2>&1; then
+		fail "systemctl is required to start OpenSSH service."
+	fi
+
+	if systemctl list-unit-files --type=service | grep -q '^ssh\.service'; then
+		ssh_service="ssh"
+	elif systemctl list-unit-files --type=service | grep -q '^sshd\.service'; then
+		ssh_service="sshd"
+	else
+		if "${SUDO[@]}" systemctl enable --now sshd >/dev/null 2>&1; then
+			ssh_service="sshd"
+			log "OpenSSH service started: ${ssh_service}"
+			return
+		fi
+
+		if "${SUDO[@]}" systemctl enable --now ssh >/dev/null 2>&1; then
+			ssh_service="ssh"
+			log "OpenSSH service started: ${ssh_service}"
+			return
+		fi
+
+		fail "Could not find ssh/sshd service unit."
+	fi
+
+	"${SUDO[@]}" systemctl enable --now "${ssh_service}"
+	log "OpenSSH service started: ${ssh_service}"
+}
+
+cloudflared_available_in_repo() {
+	case "${PKG_MANAGER}" in
+		apt)
+			apt-cache show cloudflared >/dev/null 2>&1
+			;;
+		pacman)
+			pacman -Si cloudflared >/dev/null 2>&1
+			;;
+		dnf)
+			dnf -q list available cloudflared >/dev/null 2>&1
+			;;
+		yum)
+			yum -q list available cloudflared >/dev/null 2>&1
+			;;
+		zypper)
+			zypper -n --xmlout search --match-exact cloudflared 2>/dev/null | grep -q 'name="cloudflared"'
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
+install_cloudflared_from_repo() {
+	case "${PKG_MANAGER}" in
+		apt)
+			"${SUDO[@]}" apt-get install -y cloudflared
+			;;
+		pacman)
+			"${SUDO[@]}" pacman -S --noconfirm cloudflared
+			;;
+		dnf)
+			"${SUDO[@]}" dnf -y install cloudflared
+			;;
+		yum)
+			"${SUDO[@]}" yum -y install cloudflared
+			;;
+		zypper)
+			"${SUDO[@]}" zypper -n install cloudflared
+			;;
+		*)
+			fail "Unsupported package manager: ${PKG_MANAGER}"
+			;;
+	esac
+}
+
+choose_cloudflared_asset() {
+	local package_format="$1"
+	local arch
+
+	arch="$(uname -m)"
+
+	case "${package_format}:${arch}" in
+		deb:x86_64|deb:amd64)
+			echo "cloudflared-linux-amd64.deb"
+			;;
+		deb:aarch64|deb:arm64)
+			echo "cloudflared-linux-arm64.deb"
+			;;
+		deb:armv7l|deb:armv7|deb:armhf)
+			echo "cloudflared-linux-armhf.deb"
+			;;
+		deb:armv6l|deb:armv5l)
+			echo "cloudflared-linux-arm.deb"
+			;;
+		deb:i386|deb:i686)
+			echo "cloudflared-linux-386.deb"
+			;;
+		rpm:x86_64|rpm:amd64)
+			echo "cloudflared-linux-x86_64.rpm"
+			;;
+		rpm:aarch64|rpm:arm64)
+			echo "cloudflared-linux-aarch64.rpm"
+			;;
+		rpm:armv7l|rpm:armv7|rpm:armhf)
+			echo "cloudflared-linux-armhf.rpm"
+			;;
+		rpm:armv6l|rpm:armv5l)
+			echo "cloudflared-linux-arm.rpm"
+			;;
+		rpm:i386|rpm:i686)
+			echo "cloudflared-linux-386.rpm"
+			;;
+		bin:x86_64|bin:amd64)
+			echo "cloudflared-linux-amd64"
+			;;
+		bin:aarch64|bin:arm64)
+			echo "cloudflared-linux-arm64"
+			;;
+		bin:armv7l|bin:armv7|bin:armhf)
+			echo "cloudflared-linux-armhf"
+			;;
+		bin:armv6l|bin:armv5l)
+			echo "cloudflared-linux-arm"
+			;;
+		bin:i386|bin:i686)
+			echo "cloudflared-linux-386"
+			;;
+		*)
+			fail "Unsupported architecture for Cloudflared asset: ${arch}"
+			;;
+	esac
+}
+
+install_cloudflared_from_github() {
+	local package_format
+	local asset
+	local download_url
+	local temp_dir
+	local asset_path
+
+	case "${PKG_MANAGER}" in
+		apt)
+			package_format="deb"
+			;;
+		dnf|yum|zypper)
+			package_format="rpm"
+			;;
+		pacman)
+			package_format="bin"
+			;;
+		*)
+			fail "Unsupported package manager for Cloudflared fallback: ${PKG_MANAGER}"
+			;;
+	esac
+
+	asset="$(choose_cloudflared_asset "${package_format}")"
+	download_url="https://github.com/cloudflare/cloudflared/releases/latest/download/${asset}"
+	temp_dir="$(mktemp -d)"
+	asset_path="${temp_dir}/${asset}"
+
+	trap 'rm -rf "${temp_dir}"' RETURN
+
+	log "Downloading ${asset} from GitHub releases"
+	curl -fL "${download_url}" -o "${asset_path}"
+
+	case "${package_format}" in
+		deb)
+			"${SUDO[@]}" apt-get install -y "${asset_path}"
+			;;
+		rpm)
+			case "${PKG_MANAGER}" in
+				dnf)
+					"${SUDO[@]}" dnf -y install "${asset_path}"
+					;;
+				yum)
+					"${SUDO[@]}" yum -y localinstall "${asset_path}"
+					;;
+				zypper)
+					"${SUDO[@]}" zypper -n install "${asset_path}"
+					;;
+			esac
+			;;
+		bin)
+			"${SUDO[@]}" install -m 0755 "${asset_path}" /usr/local/bin/cloudflared
+			;;
+	esac
+}
+
+if [[ "$(uname -s)" != "Linux" ]]; then
+	fail "This script supports Linux only."
+fi
+
+if (( EUID == 0 )); then
+	SUDO=()
+else
+	if ! command -v sudo >/dev/null 2>&1; then
+		fail "sudo is required when not running as root."
+	fi
+	SUDO=(sudo)
+fi
+
+TARGET_USER="${SUDO_USER:-$USER}"
+TARGET_HOME="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
+
+if [[ -z "${TARGET_HOME}" || ! -d "${TARGET_HOME}" ]]; then
+	TARGET_HOME="${HOME}"
+fi
+
+SSH_DIR="${TARGET_HOME}/.ssh"
+AUTHORIZED_KEYS="${SSH_DIR}/authorized_keys"
+
+log "Creating SSH directory at ${SSH_DIR}"
+mkdir -p "${SSH_DIR}"
+chmod 700 "${SSH_DIR}"
+
+log "Fetching SSH keys from ${KEYS_URL} and appending to authorized_keys"
+TEMP_KEYS_FILE="$(mktemp)"
+curl -fsSL "${KEYS_URL}" -o "${TEMP_KEYS_FILE}"
+touch "${AUTHORIZED_KEYS}"
+
+if [[ -s "${AUTHORIZED_KEYS}" ]] && [[ "$(tail -c 1 "${AUTHORIZED_KEYS}")" != $'\n' ]]; then
+	printf '\n' >> "${AUTHORIZED_KEYS}"
+fi
+
+cat "${TEMP_KEYS_FILE}" >> "${AUTHORIZED_KEYS}"
+rm -f "${TEMP_KEYS_FILE}"
+
+if [[ -s "${AUTHORIZED_KEYS}" ]] && [[ "$(tail -c 1 "${AUTHORIZED_KEYS}")" != $'\n' ]]; then
+	printf '\n' >> "${AUTHORIZED_KEYS}"
+fi
+
+chmod 600 "${AUTHORIZED_KEYS}"
+
+if (( EUID == 0 )); then
+	chown -R "${TARGET_USER}:${TARGET_USER}" "${SSH_DIR}"
+fi
+
+PKG_MANAGER="$(detect_package_manager)"
+log "Detected package manager: ${PKG_MANAGER}"
+
+log "Installing OpenSSH server"
+install_openssh_server
+
+log "Starting OpenSSH service"
+start_openssh_service
+
+if cloudflared_available_in_repo; then
+	log "cloudflared found in official repositories, installing"
+	install_cloudflared_from_repo
+else
+	log "cloudflared not found in repositories, installing from GitHub releases"
+	install_cloudflared_from_github
+fi
+
+log "Starting Cloudflare test tunnel"
+cloudflared tunnel --url tcp://localhost:22 2>&1 | \
+grep --line-buffered -o "https://.*\.trycloudflare\.com"
