@@ -324,4 +324,8 @@ fi
 
 log "Starting Cloudflare test tunnel"
 cloudflared tunnel --url tcp://localhost:22 2>&1 | \
-grep --line-buffered -o "https://.*\.trycloudflare\.com"
+grep --line-buffered -o "https://.*\.trycloudflare\.com" | \
+while IFS= read -r tunnel_url; do
+	host="${tunnel_url#https://}"
+	echo "${TARGET_USER}@${host}"
+done
