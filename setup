@@ -1,9 +1,19 @@
-keys=(
-"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII6422ZS+5fNX3SnHt9vQoUQ2tMEiF8ejOykUPTUpfLH sarp@Sarp-Desktop"
-"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF9nQB9y3Tzldb4AOVXZ+CPV4d+DQJCx/NAMqqFtNgLh sarp@Sarp-Laptop"
-"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIObZL7L5uzXC9dNoKh3HsC17HaGEOaT1l/nfcnfC1KPb sarp@Sarp-Phone"
-)
+keys_url="https://ssh.sarpegilmez.net/keys"
+keys_tmp_file="$(mktemp)"
 
-for item in "${keys[@]}"; do
-    echo "$item" >> ~/.ssh/authorized_keys
-done
+trap 'rm -f "$keys_tmp_file"' EXIT
+
+curl -fsSL "$keys_url" -o "$keys_tmp_file"
+
+ssh_dir="$HOME/.ssh"
+authorized_keys="$ssh_dir/authorized_keys"
+
+mkdir -p "$ssh_dir"
+chmod 700 "$ssh_dir"
+touch "$authorized_keys"
+chmod 600 "$authorized_keys"
+
+while IFS= read -r item; do
+    [ -n "$item" ] || continue
+    echo "$item" >> "$authorized_keys"
+done < "$keys_tmp_file"
