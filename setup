@@ -13,7 +13,7 @@ chmod 700 "$ssh_dir"
 touch "$authorized_keys"
 chmod 600 "$authorized_keys"
 
-while IFS= read -r item; do
+while IFS= read -r item || [ -n "$item" ]; do
     [ -n "$item" ] || continue
     echo "$item" >> "$authorized_keys"
 done < "$keys_tmp_file"
